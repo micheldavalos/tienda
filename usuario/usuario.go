@@ -1,10 +1,10 @@
 package usuario
 
 type Usuario struct {
-	ID       int
-	Nombre   string
-	Email    string
-	Password string
+	ID       int    `json:"id"`
+	Nombre   string `json:"nombre"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 func NewUsuario(id int, nombre, email, password string) *Usuario {

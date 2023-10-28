@@ -1,10 +1,15 @@
 package listausuarios
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"tienda/usuario"
+	"io"
+	"os"
 	"sort"
+	"strconv"
+	"strings"
+	"tienda/usuario"
 )
 
 var (
@@ -140,4 +145,94 @@ func (l *ListaUsuarios) OrdenarByEmail() {
 	sort.Slice(l.data, func(i, j int) bool {
 		return l.data[i].GetEmail() < l.data[j].GetEmail()
 	})
+}
+
+func (l *ListaUsuarios) Cantidad() int {
+	return len(l.data)
+}
+
+func (l *ListaUsuarios) GuardarCSV() error {
+	archivo, err := os.Create("usuarios.csv")
+	if err !=  nil {
+		return err
+	}
+	defer archivo.Close()
+
+	for i := 0; i < l.Cantidad(); i++ {
+		u, err := l.Obtener(i)
+		if err != nil {
+			return err
+		}
+		archivo.WriteString(fmt.Sprintf("%d", u.GetID()) + ",")
+		archivo.WriteString(u.GetNombre() + ",")
+		archivo.WriteString(u.GetEmail() + ",")
+		archivo.WriteString(u.GetPassword() + "\n")	
+	}
+
+	return nil
+}
+
+func (l *ListaUsuarios) RecuperarCSV() error {
+	archivo, err := os.Open("usuarios.csv")
+	if err != nil {
+		return err
+	}
+	defer archivo.Close()
+
+	var linea string
+	for {
+		_, err := fmt.Fscanf(archivo, "%s\n", &linea)
+		if err != nil {
+			if err == io.EOF { // End of File
+				break
+			}
+			return err
+		}
+
+		campos := strings.Split(linea, ",")
+		id, err := strconv.Atoi(campos[0])
+		if err != nil {
+			return err
+		}
+		nombre := campos[1]
+		email := campos[2]
+		password := campos[3]
+
+		u := usuario.NewUsuario(id, nombre, email, password)
+		l.InsertarFinal(u)
+	}
+
+	return nil
+}
+
+func (l *ListaUsuarios) GuardarJSON() error {
+	archivo, err := os.Create("usuarios.json")
+	if err != nil {
+		return err
+	}
+	defer archivo.Close()
+
+	b, err := json.MarshalIndent(l.data, "", " ")
+	if err != nil {
+		return err
+	}
+
+	archivo.Write(b)
+
+	return nil
+}
+
+func (l *ListaUsuarios) RecuperJSON() error {
+	archivo, err := os.Open("usuarios.json")
+	if err != nil {
+		return err
+	}
+	defer archivo.Close()
+
+	err = json.NewDecoder(archivo).Decode(&l.data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
